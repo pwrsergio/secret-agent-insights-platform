@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { Dashboard } from "./pages/Dashboard";
 import { Checklists } from "./pages/Checklists";
+import { ChecklistDetails } from "./pages/ChecklistDetails";
 import { Usuarios } from "./pages/Usuarios";
 import { Respostas } from "./pages/Respostas";
 import { Relatorios } from "./pages/Relatorios";
@@ -24,6 +25,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/checklists" element={<Checklists />} />
+            <Route path="/checklists/:id" element={<ChecklistDetails />} />
             <Route path="/usuarios" element={<Usuarios />} />
             <Route path="/respostas" element={<Respostas />} />
             <Route path="/relatorios" element={<Relatorios />} />
