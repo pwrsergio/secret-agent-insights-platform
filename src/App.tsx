@@ -11,6 +11,7 @@ import { Usuarios } from "./pages/Usuarios";
 import { Respostas } from "./pages/Respostas";
 import { Relatorios } from "./pages/Relatorios";
 import { Auditoria } from "./pages/Auditoria";
+import { FormularioResposta } from "./pages/FormularioResposta";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/respostas" element={<Respostas />} />
             <Route path="/relatorios" element={<Relatorios />} />
             <Route path="/auditoria" element={<Auditoria />} />
+            <Route path="/formulario/:checklistId" element={<FormularioResposta />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>
