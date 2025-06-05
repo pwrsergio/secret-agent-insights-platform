@@ -88,7 +88,7 @@ export const Respostas = () => {
   const filteredRespostas = mockRespostas.filter(resposta => {
     const matchesSearch = resposta.checklist.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          resposta.clienteOculto.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesChecklist = !filterChecklist || resposta.checklist.includes(filterChecklist);
+    const matchesChecklist = !filterChecklist || filterChecklist === "all" || resposta.checklist.includes(filterChecklist);
     return matchesSearch && matchesChecklist;
   });
 
@@ -137,7 +137,7 @@ export const Respostas = () => {
                 <SelectValue placeholder="Filtrar por checklist" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os checklists</SelectItem>
+                <SelectItem value="all">Todos os checklists</SelectItem>
                 <SelectItem value="Atendimento">Atendimento</SelectItem>
                 <SelectItem value="Vendas">Vendas</SelectItem>
                 <SelectItem value="Operação">Operação</SelectItem>
@@ -148,7 +148,7 @@ export const Respostas = () => {
                 <SelectValue placeholder="Filtrar por pilar" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os pilares</SelectItem>
+                <SelectItem value="all">Todos os pilares</SelectItem>
                 <SelectItem value="Experiência">Experiência</SelectItem>
                 <SelectItem value="Operação">Operação</SelectItem>
                 <SelectItem value="Vendas">Vendas</SelectItem>
