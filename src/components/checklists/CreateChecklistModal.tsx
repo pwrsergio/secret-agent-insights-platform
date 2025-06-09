@@ -1,114 +1,131 @@
 import { useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const perguntaSchema = z.object({
-  texto: z.string().min(5, "Pergunta deve ter pelo menos 5 caracteres"),
-  pilar: z.enum(["Experiência", "Operação", "Vendas"]),
-  obrigatoria: z.boolean(),
-});
+interface Pergunta {
+  id: string;
+  texto: string;
+  pilar: "Experiência" | "Operação" | "Vendas";
+  obrigatoria: boolean;
+}
 
-const momentoSchema = z.object({
-  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  descricao: z.string().min(10, "Descrição deve ter pelo menos 10 caracteres"),
-  perguntas: z.array(perguntaSchema).min(1, "Cada momento deve ter pelo menos 1 pergunta"),
-});
-
-const checklistSchema = z.object({
-  nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  descricao: z.string().min(10, "Descrição deve ter pelo menos 10 caracteres"),
-  status: z.enum(["Ativo", "Rascunho"]),
-  momentos: z.array(momentoSchema).min(1, "Checklist deve ter pelo menos 1 momento da verdade"),
-});
-
-type ChecklistFormData = z.infer<typeof checklistSchema>;
+interface Momento {
+  id: string;
+  nome: string;
+  descricao: string;
+  perguntas: Pergunta[];
+}
 
 interface CreateChecklistModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: () => void;
+  onSuccess: () => void;
 }
 
 export const CreateChecklistModal = ({ open, onOpenChange, onSuccess }: CreateChecklistModalProps) => {
   const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const form = useForm<ChecklistFormData>({
-    resolver: zodResolver(checklistSchema),
-    defaultValues: {
+  const [nome, setNome] = useState("");
+  const [descricao, setDescricao] = useState("");
+  const [status, setStatus] = useState("Ativo");
+  const [momentos, setMomentos] = useState<Momento[]>([
+    {
+      id: "1",
       nome: "",
       descricao: "",
-      status: "Rascunho",
-      momentos: [
-        {
-          nome: "",
-          descricao: "",
-          perguntas: [
-            {
-              texto: "",
-              pilar: "Experiência",
-              obrigatoria: true,
-            }
-          ]
-        }
-      ],
-    },
-  });
-
-  const { fields: momentosFields, append: appendMomento, remove: removeMomento } = useFieldArray({
-    control: form.control,
-    name: "momentos",
-  });
-
-  const onSubmit = async (data: ChecklistFormData) => {
-    setIsSubmitting(true);
-    try {
-      // Simular API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log("Checklist criado:", data);
-      toast({
-        title: "Checklist criado com sucesso!",
-        description: `O checklist "${data.nome}" foi criado.`,
-      });
-      
-      form.reset();
-      onOpenChange(false);
-      onSuccess?.();
-    } catch (error) {
-      toast({
-        title: "Erro ao criar checklist",
-        description: "Tente novamente em alguns instantes.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+      perguntas: []
     }
+  ]);
+
+  const addMomento = () => {
+    const newMomento: Momento = {
+      id: Date.now().toString(),
+      nome: "",
+      descricao: "",
+      perguntas: []
+    };
+    setMomentos([...momentos, newMomento]);
+  };
+
+  const removeMomento = (id: string) => {
+    setMomentos(momentos.filter(m => m.id !== id));
+  };
+
+  const updateMomento = (id: string, field: keyof Momento, value: string) => {
+    setMomentos(momentos.map(m => 
+      m.id === id ? { ...m, [field]: value } : m
+    ));
+  };
+
+  const addPergunta = (momentoId: string) => {
+    const newPergunta: Pergunta = {
+      id: Date.now().toString(),
+      texto: "",
+      pilar: "Experiência",
+      obrigatoria: true
+    };
+    
+    setMomentos(momentos.map(m => 
+      m.id === momentoId 
+        ? { ...m, perguntas: [...m.perguntas, newPergunta] }
+        : m
+    ));
+  };
+
+  const removePergunta = (momentoId: string, perguntaId: string) => {
+    setMomentos(momentos.map(m => 
+      m.id === momentoId 
+        ? { ...m, perguntas: m.perguntas.filter(p => p.id !== perguntaId) }
+        : m
+    ));
+  };
+
+  const updatePergunta = (momentoId: string, perguntaId: string, field: keyof Pergunta, value: any) => {
+    setMomentos(momentos.map(m => 
+      m.id === momentoId 
+        ? { 
+            ...m, 
+            perguntas: m.perguntas.map(p => 
+              p.id === perguntaId ? { ...p, [field]: value } : p
+            )
+          }
+        : m
+    ));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!nome.trim()) {
+      toast({
+        title: "Erro",
+        description: "Nome do checklist é obrigatório",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Simular criação
+    console.log("Criando checklist:", { nome, descricao, status, momentos });
+    
+    toast({
+      title: "Sucesso!",
+      description: "Checklist criado com sucesso"
+    });
+
+    // Reset form
+    setNome("");
+    setDescricao("");
+    setStatus("Ativo");
+    setMomentos([{ id: "1", nome: "", descricao: "", perguntas: [] }]);
+    
+    onSuccess();
+    onOpenChange(false);
   };
 
   return (
@@ -117,283 +134,179 @@ export const CreateChecklistModal = ({ open, onOpenChange, onSuccess }: CreateCh
         <DialogHeader>
           <DialogTitle>Criar Novo Checklist</DialogTitle>
           <DialogDescription>
-            Crie um novo checklist com momentos da verdade e perguntas específicas.
+            Preencha as informações do checklist, momentos da verdade e perguntas
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Informações Básicas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="nome"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome do Checklist</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ex: Atendimento - Loja Centro" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Rascunho">Rascunho</SelectItem>
-                        <SelectItem value="Ativo">Ativo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="descricao"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Descrição</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Descreva o objetivo deste checklist..."
-                      rows={3}
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Momentos da Verdade */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Momentos da Verdade</h3>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => appendMomento({
-                    nome: "",
-                    descricao: "",
-                    perguntas: [{ texto: "", pilar: "Experiência", obrigatoria: true }]
-                  })}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Adicionar Momento
-                </Button>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Informações Básicas */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">Informações Básicas</h3>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nome">Nome do Checklist *</Label>
+                <Input
+                  id="nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Ex: Atendimento - Loja Centro"
+                  required
+                />
               </div>
-
-              {momentosFields.map((momento, momentoIndex) => (
-                <MomentoCard
-                  key={momento.id}
-                  momentoIndex={momentoIndex}
-                  form={form}
-                  onRemove={() => removeMomento(momentoIndex)}
-                  canRemove={momentosFields.length > 1}
-                />
-              ))}
+              
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={status} onValueChange={setStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Ativo">Ativo</SelectItem>
+                    <SelectItem value="Rascunho">Rascunho</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <DialogFooter className="gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Criando..." : "Criar Checklist"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-interface MomentoCardProps {
-  momentoIndex: number;
-  form: any;
-  onRemove: () => void;
-  canRemove: boolean;
-}
-
-const MomentoCard = ({ momentoIndex, form, onRemove, canRemove }: MomentoCardProps) => {
-  const { fields: perguntasFields, append: appendPergunta, remove: removePergunta } = useFieldArray({
-    control: form.control,
-    name: `momentos.${momentoIndex}.perguntas`,
-  });
-
-  return (
-    <Card>
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <GripVertical className="h-4 w-4 text-gray-400" />
-            Momento {momentoIndex + 1}
-          </CardTitle>
-          {canRemove && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onRemove}
-              className="text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name={`momentos.${momentoIndex}.nome`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome do Momento</FormLabel>
-                <FormControl>
-                  <Input placeholder="Ex: Recepção do Cliente" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <FormField
-          control={form.control}
-          name={`momentos.${momentoIndex}.descricao`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Descrição</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Descreva este momento da verdade..."
-                  rows={2}
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Perguntas */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium">Perguntas</h4>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => appendPergunta({ texto: "", pilar: "Experiência", obrigatoria: true })}
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Adicionar Pergunta
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="descricao">Descrição</Label>
+              <Textarea
+                id="descricao"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value)}
+                placeholder="Descrição do checklist..."
+              />
+            </div>
           </div>
 
-          {perguntasFields.map((pergunta, perguntaIndex) => (
-            <div key={pergunta.id} className="border rounded-lg p-3 bg-gray-50 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">
-                  Pergunta {perguntaIndex + 1}
-                </span>
-                {perguntasFields.length > 1 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removePergunta(perguntaIndex)}
-                    className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-
-              <FormField
-                control={form.control}
-                name={`momentos.${momentoIndex}.perguntas.${perguntaIndex}.texto`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Digite a pergunta..."
-                        rows={2}
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex items-center gap-4">
-                <FormField
-                  control={form.control}
-                  name={`momentos.${momentoIndex}.perguntas.${perguntaIndex}.pilar`}
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <FormLabel className="text-xs">Pilar</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-8">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Experiência">Experiência</SelectItem>
-                          <SelectItem value="Operação">Operação</SelectItem>
-                          <SelectItem value="Vendas">Vendas</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name={`momentos.${momentoIndex}.perguntas.${perguntaIndex}.obrigatoria`}
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-2 space-y-0 pt-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormLabel className="text-xs">Obrigatória</FormLabel>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+          {/* Momentos da Verdade */}
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Momentos da Verdade</h3>
+              <Button type="button" variant="outline" onClick={addMomento}>
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Momento
+              </Button>
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+
+            {momentos.map((momento, momentoIndex) => (
+              <div key={momento.id} className="border rounded-lg p-4 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="font-medium">Momento {momentoIndex + 1}</h4>
+                  {momentos.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeMomento(momento.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Nome do Momento</Label>
+                    <Input
+                      value={momento.nome}
+                      onChange={(e) => updateMomento(momento.id, "nome", e.target.value)}
+                      placeholder="Ex: Recepção do Cliente"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descrição</Label>
+                    <Input
+                      value={momento.descricao}
+                      onChange={(e) => updateMomento(momento.id, "descricao", e.target.value)}
+                      placeholder="Descrição do momento..."
+                    />
+                  </div>
+                </div>
+
+                {/* Perguntas */}
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <Label className="text-sm font-medium">Perguntas</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addPergunta(momento.id)}
+                    >
+                      <Plus className="h-3 w-3 mr-1" />
+                      Pergunta
+                    </Button>
+                  </div>
+
+                  {momento.perguntas.map((pergunta, perguntaIndex) => (
+                    <div key={pergunta.id} className="bg-gray-50 p-3 rounded border space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Pergunta {perguntaIndex + 1}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removePergunta(momento.id, pergunta.id)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Input
+                          value={pergunta.texto}
+                          onChange={(e) => updatePergunta(momento.id, pergunta.id, "texto", e.target.value)}
+                          placeholder="Digite a pergunta..."
+                        />
+                        
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select 
+                            value={pergunta.pilar} 
+                            onValueChange={(value) => updatePergunta(momento.id, pergunta.id, "pilar", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Experiência">Experiência</SelectItem>
+                              <SelectItem value="Operação">Operação</SelectItem>
+                              <SelectItem value="Vendas">Vendas</SelectItem>
+                            </SelectContent>
+                          </Select>
+
+                          <Select 
+                            value={pergunta.obrigatoria ? "sim" : "não"} 
+                            onValueChange={(value) => updatePergunta(momento.id, pergunta.id, "obrigatoria", value === "sim")}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sim">Obrigatória</SelectItem>
+                              <SelectItem value="não">Opcional</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit">
+              Criar Checklist
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
